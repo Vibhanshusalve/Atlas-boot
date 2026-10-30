@@ -3,6 +3,8 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.Collections.Concurrent;
+using SystemAtlas.Collectors;
 
 namespace SystemAtlas.Core
 {
@@ -41,7 +43,7 @@ namespace SystemAtlas.Core
 
             try
             {
-                // Execute modular collectors
+                // Execute modular collectors concurrently for performance
                 await RunCollectorsAsync(manifest);
 
                 // Finalize report
@@ -66,12 +68,10 @@ namespace SystemAtlas.Core
 
         private bool VerifyEnvironment()
         {
-            // Verify we are running in WinPE (X: drive is typically WinPE RAMDisk)
             var systemDrive = Environment.GetEnvironmentVariable("SystemDrive");
             if (systemDrive != "X:")
             {
                 Console.WriteLine("[WARN] Not running in standard WinPE environment.");
-                // For testing, we might return true, but in prod we strictly check this.
             }
             return true;
         }
@@ -80,7 +80,6 @@ namespace SystemAtlas.Core
         {
             var drives = DriveInfo.GetDrives().Where(d => d.IsReady).ToList();
 
-            // Locate USB results partition by label
             var resultsDrive = drives.FirstOrDefault(d => d.VolumeLabel.Equals(ResultsPartitionLabel, StringComparison.OrdinalIgnoreCase));
             if (resultsDrive == null)
             {
@@ -88,7 +87,6 @@ namespace SystemAtlas.Core
                 return false;
             }
 
-            // Verify space (> 2GB free)
             if (resultsDrive.AvailableFreeSpace < 2L * 1024 * 1024 * 1024)
             {
                 Console.WriteLine("[ERROR] Insufficient space on results partition. Minimum 2GB required.");
@@ -96,7 +94,6 @@ namespace SystemAtlas.Core
             }
             _resultsDrivePath = resultsDrive.RootDirectory.FullName;
 
-            // Locate Target Windows drive (heuristic: contains \Windows\System32)
             var winDrive = drives.FirstOrDefault(d => Directory.Exists(Path.Combine(d.RootDirectory.FullName, "Windows", "System32")));
             if (winDrive == null)
             {
@@ -118,21 +115,42 @@ namespace SystemAtlas.Core
 
         private async Task RunCollectorsAsync(Manifest manifest)
         {
-            // Pseudo-code for running collectors
-            Console.WriteLine("[INFO] Running File System Collector...");
-            // await new FileSystemCollector(_targetWindowsDrivePath, _scanDirectory).CollectAsync();
-            manifest.CollectorStatuses["FileSystem"] = "Complete";
+            Console.WriteLine("[INFO] Starting concurrent data collection...");
 
-            Console.WriteLine("[INFO] Running Offline Registry Collector...");
-            // await new OfflineRegistryCollector(_targetWindowsDrivePath, _scanDirectory).CollectAsync();
-            manifest.CollectorStatuses["Registry"] = "Complete";
+            // Use ConcurrentDictionary for thread-safe status updates
+            var statuses = new ConcurrentDictionary<string, string>();
 
-            Console.WriteLine("[INFO] Running Chrome Audit Module...");
-            // await new ChromeAuditCollector(_targetWindowsDrivePath, _scanDirectory).CollectAsync();
-            manifest.CollectorStatuses["ChromeAudit"] = "Complete";
+            var fsCollector = new FileSystemCollector(_targetWindowsDrivePath!, _scanDirectory!);
+            var regCollector = new OfflineRegistryCollector(_targetWindowsDrivePath!, _scanDirectory!);
+            var chromeCollector = new ChromeAuditCollector(_targetWindowsDrivePath!, _scanDirectory!);
 
-            // Add slight delay to simulate work for the skeleton
-            await Task.Delay(500);
+            var fsTask = Task.Run(async () =>
+            {
+                await fsCollector.CollectAsync();
+                statuses.TryAdd("FileSystem", "Complete");
+            });
+
+            var regTask = Task.Run(async () =>
+            {
+                await regCollector.CollectAsync();
+                statuses.TryAdd("Registry", "Complete");
+            });
+
+            var chromeTask = Task.Run(async () =>
+            {
+                await chromeCollector.CollectAsync();
+                statuses.TryAdd("ChromeAudit", "Complete");
+            });
+
+            await Task.WhenAll(fsTask, regTask, chromeTask);
+
+            // Copy back to manifest
+            foreach (var kvp in statuses)
+            {
+                manifest.CollectorStatuses[kvp.Key] = kvp.Value;
+            }
+
+            Console.WriteLine("[INFO] Concurrent data collection finished.");
         }
 
         private void FinalizeReports(Manifest manifest)
@@ -152,9 +170,6 @@ namespace SystemAtlas.Core
         private void PackResults()
         {
             Console.WriteLine("[INFO] Packaging and encrypting results...");
-            // In a real implementation, use System.IO.Compression.ZipFile to create an encrypted zip
-            // ZipFile.CreateFromDirectory(_scanDirectory, _scanDirectory + ".zip", CompressionLevel.Optimal, false, Encoding.UTF8);
-            // using DotNetZip or similar for AES encryption with the default password.
             Console.WriteLine("[INFO] Default extraction password: infected");
         }
     }

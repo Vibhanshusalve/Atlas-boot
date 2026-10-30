@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace SystemAtlas.Collectors
@@ -19,13 +20,16 @@ namespace SystemAtlas.Collectors
         {
             var csvPath = Path.Combine(_scanDirectory, "File-Inventory.csv");
 
-            // Using a StreamWriter with transactional/incremental writes.
-            using var writer = new StreamWriter(csvPath, append: false);
+            // Optimization: Increase buffer size to 64KB to minimize USB write operations
+            const int bufferSize = 65536;
+
+            using var fs = new FileStream(csvPath, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize, FileOptions.Asynchronous);
+            using var writer = new StreamWriter(fs, Encoding.UTF8, bufferSize);
+
             await writer.WriteLineAsync("Path,Size,CreationTime,LastWriteTime,Attributes");
 
             try
             {
-                // Start enumerating from Users and select important roots to avoid scanning C:\Windows entirely unless needed.
                 var usersDir = Path.Combine(_targetDrive, "Users");
                 if (Directory.Exists(usersDir))
                 {
@@ -44,7 +48,6 @@ namespace SystemAtlas.Collectors
             {
                 var dirInfo = new DirectoryInfo(dirPath);
 
-                // Prevent following reparse points (symlinks/junctions) to avoid loops
                 if (dirInfo.Attributes.HasFlag(FileAttributes.ReparsePoint))
                 {
                     return;
@@ -56,7 +59,6 @@ namespace SystemAtlas.Collectors
                     ReturnSpecialDirectories = false
                 }))
                 {
-                    // Do not collect file contents. Just metadata.
                     var line = $"\"{file.FullName}\",{file.Length},{file.CreationTimeUtc:O},{file.LastWriteTimeUtc:O},\"{file.Attributes}\"";
                     await writer.WriteLineAsync(line);
                 }
@@ -68,7 +70,7 @@ namespace SystemAtlas.Collectors
             }
             catch (UnauthorizedAccessException)
             {
-                // Explicitly record inaccessible paths in a separate log if required, or skip gracefully.
+                // Skip gracefully
             }
             catch (Exception)
             {
