@@ -6,6 +6,13 @@ namespace SystemAtlas.Collectors
 {
     public class ChromeAuditCollector
     {
+        // ⚡ Bolt Optimization: Use static EnumerationOptions to avoid allocating new configuration objects
+        // during directory enumeration. This reduces unnecessary garbage collection overhead.
+        private static readonly EnumerationOptions s_dirEnumerationOptions = new EnumerationOptions
+        {
+            IgnoreInaccessible = true
+        };
+
         private readonly string _targetDrive;
         private readonly string _scanDirectory;
 
@@ -26,7 +33,7 @@ namespace SystemAtlas.Collectors
             var usersDir = Path.Combine(_targetDrive, "Users");
             if (!Directory.Exists(usersDir)) return;
 
-            foreach (var userDir in Directory.EnumerateDirectories(usersDir, "*", new EnumerationOptions { IgnoreInaccessible = true }))
+            foreach (var userDir in Directory.EnumerateDirectories(usersDir, "*", s_dirEnumerationOptions))
             {
                 var chromeDataPath = Path.Combine(userDir, "AppData", "Local", "Google", "Chrome", "User Data");
                 if (Directory.Exists(chromeDataPath))
