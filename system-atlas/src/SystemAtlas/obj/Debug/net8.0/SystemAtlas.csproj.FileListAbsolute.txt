@@ -1,0 +1,15 @@
+/app/system-atlas/src/SystemAtlas/bin/Debug/net8.0/SystemAtlas
+/app/system-atlas/src/SystemAtlas/bin/Debug/net8.0/SystemAtlas.deps.json
+/app/system-atlas/src/SystemAtlas/bin/Debug/net8.0/SystemAtlas.runtimeconfig.json
+/app/system-atlas/src/SystemAtlas/bin/Debug/net8.0/SystemAtlas.dll
+/app/system-atlas/src/SystemAtlas/bin/Debug/net8.0/SystemAtlas.pdb
+/app/system-atlas/src/SystemAtlas/obj/Debug/net8.0/SystemAtlas.GeneratedMSBuildEditorConfig.editorconfig
+/app/system-atlas/src/SystemAtlas/obj/Debug/net8.0/SystemAtlas.AssemblyInfoInputs.cache
+/app/system-atlas/src/SystemAtlas/obj/Debug/net8.0/SystemAtlas.AssemblyInfo.cs
+/app/system-atlas/src/SystemAtlas/obj/Debug/net8.0/SystemAtlas.csproj.CoreCompileInputs.cache
+/app/system-atlas/src/SystemAtlas/obj/Debug/net8.0/SystemAtlas.sourcelink.json
+/app/system-atlas/src/SystemAtlas/obj/Debug/net8.0/SystemAtlas.dll
+/app/system-atlas/src/SystemAtlas/obj/Debug/net8.0/refint/SystemAtlas.dll
+/app/system-atlas/src/SystemAtlas/obj/Debug/net8.0/SystemAtlas.pdb
+/app/system-atlas/src/SystemAtlas/obj/Debug/net8.0/SystemAtlas.genruntimeconfig.cache
+/app/system-atlas/src/SystemAtlas/obj/Debug/net8.0/ref/SystemAtlas.dll

@@ -1,0 +1,15 @@
+/app/testapp/bin/Debug/net10.0/testapp
+/app/testapp/bin/Debug/net10.0/testapp.deps.json
+/app/testapp/bin/Debug/net10.0/testapp.runtimeconfig.json
+/app/testapp/bin/Debug/net10.0/testapp.dll
+/app/testapp/bin/Debug/net10.0/testapp.pdb
+/app/testapp/obj/Debug/net10.0/testapp.GeneratedMSBuildEditorConfig.editorconfig
+/app/testapp/obj/Debug/net10.0/testapp.AssemblyInfoInputs.cache
+/app/testapp/obj/Debug/net10.0/testapp.AssemblyInfo.cs
+/app/testapp/obj/Debug/net10.0/testapp.csproj.CoreCompileInputs.cache
+/app/testapp/obj/Debug/net10.0/testapp.sourcelink.json
+/app/testapp/obj/Debug/net10.0/testapp.dll
+/app/testapp/obj/Debug/net10.0/refint/testapp.dll
+/app/testapp/obj/Debug/net10.0/testapp.pdb
+/app/testapp/obj/Debug/net10.0/testapp.genruntimeconfig.cache
+/app/testapp/obj/Debug/net10.0/ref/testapp.dll
