@@ -1,0 +1,3 @@
+## 2024-10-31 - FileSystemEnumerable Optimization
+**Learning:** Using `DirectoryInfo.EnumerateFiles` with an async state machine for per-file IO is extremely slow for sweeping file system collection. The default `EnumerationOptions` will also silently skip `Hidden` and `System` files which is usually not desired for file system auditing tools.
+**Action:** When bulk enumerating files in .NET, prefer `FileSystemEnumerable` over `DirectoryInfo` since it bypasses heavy object allocations. Execute the synchronous `FileSystemEnumerable` loop within a `Task.Run` to avoid async overhead for per-file processing while still exposing a non-blocking API. Always explicitly set `AttributesToSkip = 0` when auditing to avoid skipping important hidden/system files.
