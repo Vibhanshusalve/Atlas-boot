@@ -1,0 +1,3 @@
+## 2024-03-24 - Double directory enumeration overhead in SystemAtlas
+**Learning:** Calling `EnumerateFiles` followed by `EnumerateDirectories` on a `DirectoryInfo` object forces the OS to perform two separate I/O passes (`FindFirstFile`/`FindNextFile`) over the directory contents. This scales poorly on slow media or network drives.
+**Action:** Use `EnumerateFileSystemInfos` to combine the traversal into a single pass, then branch based on attributes (or type checking) to handle files vs directories.
