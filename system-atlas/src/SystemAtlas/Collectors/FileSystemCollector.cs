@@ -9,6 +9,18 @@ namespace SystemAtlas.Collectors
         private readonly string _targetDrive;
         private readonly string _scanDirectory;
 
+        // ⚡ Bolt: Cache EnumerationOptions to avoid unnecessary allocations during recursive directory traversal
+        private static readonly EnumerationOptions _fileEnumOptions = new EnumerationOptions
+        {
+            IgnoreInaccessible = true,
+            ReturnSpecialDirectories = false
+        };
+
+        private static readonly EnumerationOptions _dirEnumOptions = new EnumerationOptions
+        {
+            IgnoreInaccessible = true
+        };
+
         public FileSystemCollector(string targetDrive, string scanDirectory)
         {
             _targetDrive = targetDrive;
@@ -50,18 +62,14 @@ namespace SystemAtlas.Collectors
                     return;
                 }
 
-                foreach (var file in dirInfo.EnumerateFiles("*", new EnumerationOptions
-                {
-                    IgnoreInaccessible = true,
-                    ReturnSpecialDirectories = false
-                }))
+                foreach (var file in dirInfo.EnumerateFiles("*", _fileEnumOptions))
                 {
                     // Do not collect file contents. Just metadata.
                     var line = $"\"{file.FullName}\",{file.Length},{file.CreationTimeUtc:O},{file.LastWriteTimeUtc:O},\"{file.Attributes}\"";
                     await writer.WriteLineAsync(line);
                 }
 
-                foreach (var subDir in dirInfo.EnumerateDirectories("*", new EnumerationOptions { IgnoreInaccessible = true }))
+                foreach (var subDir in dirInfo.EnumerateDirectories("*", _dirEnumOptions))
                 {
                     await EnumerateDirectoryAsync(subDir.FullName, writer);
                 }
