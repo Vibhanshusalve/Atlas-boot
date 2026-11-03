@@ -15,6 +15,17 @@ namespace SystemAtlas.Collectors
             _scanDirectory = scanDirectory;
         }
 
+        private static readonly EnumerationOptions s_fileEnumerationOptions = new EnumerationOptions
+        {
+            IgnoreInaccessible = true,
+            ReturnSpecialDirectories = false
+        };
+
+        private static readonly EnumerationOptions s_dirEnumerationOptions = new EnumerationOptions
+        {
+            IgnoreInaccessible = true
+        };
+
         public async Task CollectAsync()
         {
             var csvPath = Path.Combine(_scanDirectory, "File-Inventory.csv");
@@ -50,18 +61,15 @@ namespace SystemAtlas.Collectors
                     return;
                 }
 
-                foreach (var file in dirInfo.EnumerateFiles("*", new EnumerationOptions
-                {
-                    IgnoreInaccessible = true,
-                    ReturnSpecialDirectories = false
-                }))
+                // ⚡ Bolt: Use cached EnumerationOptions to prevent excessive allocations during recursive traversal
+                foreach (var file in dirInfo.EnumerateFiles("*", s_fileEnumerationOptions))
                 {
                     // Do not collect file contents. Just metadata.
                     var line = $"\"{file.FullName}\",{file.Length},{file.CreationTimeUtc:O},{file.LastWriteTimeUtc:O},\"{file.Attributes}\"";
                     await writer.WriteLineAsync(line);
                 }
 
-                foreach (var subDir in dirInfo.EnumerateDirectories("*", new EnumerationOptions { IgnoreInaccessible = true }))
+                foreach (var subDir in dirInfo.EnumerateDirectories("*", s_dirEnumerationOptions))
                 {
                     await EnumerateDirectoryAsync(subDir.FullName, writer);
                 }

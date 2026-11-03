@@ -15,6 +15,11 @@ namespace SystemAtlas.Collectors
             _scanDirectory = scanDirectory;
         }
 
+        private static readonly EnumerationOptions s_dirEnumerationOptions = new EnumerationOptions
+        {
+            IgnoreInaccessible = true
+        };
+
         public async Task CollectAsync()
         {
             var auditPath = Path.Combine(_scanDirectory, "Browser-Profile-Audit.md");
@@ -26,7 +31,8 @@ namespace SystemAtlas.Collectors
             var usersDir = Path.Combine(_targetDrive, "Users");
             if (!Directory.Exists(usersDir)) return;
 
-            foreach (var userDir in Directory.EnumerateDirectories(usersDir, "*", new EnumerationOptions { IgnoreInaccessible = true }))
+            // ⚡ Bolt: Use cached EnumerationOptions to prevent allocations
+            foreach (var userDir in Directory.EnumerateDirectories(usersDir, "*", s_dirEnumerationOptions))
             {
                 var chromeDataPath = Path.Combine(userDir, "AppData", "Local", "Google", "Chrome", "User Data");
                 if (Directory.Exists(chromeDataPath))
