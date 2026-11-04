@@ -9,6 +9,12 @@ namespace SystemAtlas.Collectors
         private readonly string _targetDrive;
         private readonly string _scanDirectory;
 
+        // Cache EnumerationOptions to avoid allocations
+        private static readonly EnumerationOptions _dirEnumerationOptions = new EnumerationOptions
+        {
+            IgnoreInaccessible = true
+        };
+
         public ChromeAuditCollector(string targetDrive, string scanDirectory)
         {
             _targetDrive = targetDrive;
@@ -26,7 +32,7 @@ namespace SystemAtlas.Collectors
             var usersDir = Path.Combine(_targetDrive, "Users");
             if (!Directory.Exists(usersDir)) return;
 
-            foreach (var userDir in Directory.EnumerateDirectories(usersDir, "*", new EnumerationOptions { IgnoreInaccessible = true }))
+            foreach (var userDir in Directory.EnumerateDirectories(usersDir, "*", _dirEnumerationOptions))
             {
                 var chromeDataPath = Path.Combine(userDir, "AppData", "Local", "Google", "Chrome", "User Data");
                 if (Directory.Exists(chromeDataPath))

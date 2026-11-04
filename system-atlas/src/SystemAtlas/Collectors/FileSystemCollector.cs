@@ -9,6 +9,18 @@ namespace SystemAtlas.Collectors
         private readonly string _targetDrive;
         private readonly string _scanDirectory;
 
+        // Cache EnumerationOptions to avoid allocation per directory during recursive enumeration
+        private static readonly EnumerationOptions _fileEnumerationOptions = new EnumerationOptions
+        {
+            IgnoreInaccessible = true,
+            ReturnSpecialDirectories = false
+        };
+
+        private static readonly EnumerationOptions _dirEnumerationOptions = new EnumerationOptions
+        {
+            IgnoreInaccessible = true
+        };
+
         public FileSystemCollector(string targetDrive, string scanDirectory)
         {
             _targetDrive = targetDrive;
@@ -50,18 +62,14 @@ namespace SystemAtlas.Collectors
                     return;
                 }
 
-                foreach (var file in dirInfo.EnumerateFiles("*", new EnumerationOptions
-                {
-                    IgnoreInaccessible = true,
-                    ReturnSpecialDirectories = false
-                }))
+                foreach (var file in dirInfo.EnumerateFiles("*", _fileEnumerationOptions))
                 {
                     // Do not collect file contents. Just metadata.
                     var line = $"\"{file.FullName}\",{file.Length},{file.CreationTimeUtc:O},{file.LastWriteTimeUtc:O},\"{file.Attributes}\"";
                     await writer.WriteLineAsync(line);
                 }
 
-                foreach (var subDir in dirInfo.EnumerateDirectories("*", new EnumerationOptions { IgnoreInaccessible = true }))
+                foreach (var subDir in dirInfo.EnumerateDirectories("*", _dirEnumerationOptions))
                 {
                     await EnumerateDirectoryAsync(subDir.FullName, writer);
                 }
