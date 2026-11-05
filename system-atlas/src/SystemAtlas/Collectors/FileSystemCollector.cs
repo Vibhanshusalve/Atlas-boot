@@ -9,6 +9,13 @@ namespace SystemAtlas.Collectors
         private readonly string _targetDrive;
         private readonly string _scanDirectory;
 
+        // ⚡ Bolt: Single reusable EnumerationOptions to avoid allocation per directory
+        private static readonly EnumerationOptions _enumOptions = new EnumerationOptions
+        {
+            IgnoreInaccessible = true,
+            ReturnSpecialDirectories = false
+        };
+
         public FileSystemCollector(string targetDrive, string scanDirectory)
         {
             _targetDrive = targetDrive;
@@ -50,20 +57,21 @@ namespace SystemAtlas.Collectors
                     return;
                 }
 
-                foreach (var file in dirInfo.EnumerateFiles("*", new EnumerationOptions
+                // ⚡ Bolt: Combined file/directory enumeration into a single pass (EnumerateFileSystemInfos)
+                // This halves the number of OS-level directory queries and dramatically improves performance,
+                // especially on slow media or drives with high file counts.
+                foreach (var entry in dirInfo.EnumerateFileSystemInfos("*", _enumOptions))
                 {
-                    IgnoreInaccessible = true,
-                    ReturnSpecialDirectories = false
-                }))
-                {
-                    // Do not collect file contents. Just metadata.
-                    var line = $"\"{file.FullName}\",{file.Length},{file.CreationTimeUtc:O},{file.LastWriteTimeUtc:O},\"{file.Attributes}\"";
-                    await writer.WriteLineAsync(line);
-                }
-
-                foreach (var subDir in dirInfo.EnumerateDirectories("*", new EnumerationOptions { IgnoreInaccessible = true }))
-                {
-                    await EnumerateDirectoryAsync(subDir.FullName, writer);
+                    if (entry is FileInfo file)
+                    {
+                        // Do not collect file contents. Just metadata.
+                        var line = $"\"{file.FullName}\",{file.Length},{file.CreationTimeUtc:O},{file.LastWriteTimeUtc:O},\"{file.Attributes}\"";
+                        await writer.WriteLineAsync(line);
+                    }
+                    else if (entry is DirectoryInfo subDir)
+                    {
+                        await EnumerateDirectoryAsync(subDir.FullName, writer);
+                    }
                 }
             }
             catch (UnauthorizedAccessException)
