@@ -1,0 +1,3 @@
+## 2024-05-18 - C# Directory Enumeration I/O Bottleneck
+**Learning:** Using `DirectoryInfo.EnumerateFiles()` followed by `DirectoryInfo.EnumerateDirectories()` in C# causes two distinct OS-level queries. In highly recursive operations (like full disk offline scanning in `FileSystemCollector`), this doubles I/O overhead.
+**Action:** Always combine file and directory discovery loops into a single `DirectoryInfo.EnumerateFileSystemInfos()` pass when both are needed simultaneously, especially when parsing large environments. Additionally, cache `EnumerationOptions` statically to avoid allocating an object per visited directory.
