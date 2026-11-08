@@ -50,20 +50,26 @@ namespace SystemAtlas.Collectors
                     return;
                 }
 
-                foreach (var file in dirInfo.EnumerateFiles("*", new EnumerationOptions
+                // OPTIMIZATION: Use a single pass of EnumerateFileSystemInfos instead of two separate passes
+                // for EnumerateFiles and EnumerateDirectories. This halves the file system enumeration overhead.
+                var options = new EnumerationOptions
                 {
                     IgnoreInaccessible = true,
                     ReturnSpecialDirectories = false
-                }))
-                {
-                    // Do not collect file contents. Just metadata.
-                    var line = $"\"{file.FullName}\",{file.Length},{file.CreationTimeUtc:O},{file.LastWriteTimeUtc:O},\"{file.Attributes}\"";
-                    await writer.WriteLineAsync(line);
-                }
+                };
 
-                foreach (var subDir in dirInfo.EnumerateDirectories("*", new EnumerationOptions { IgnoreInaccessible = true }))
+                foreach (var info in dirInfo.EnumerateFileSystemInfos("*", options))
                 {
-                    await EnumerateDirectoryAsync(subDir.FullName, writer);
+                    if (info is FileInfo file)
+                    {
+                        // Do not collect file contents. Just metadata.
+                        var line = $"\"{file.FullName}\",{file.Length},{file.CreationTimeUtc:O},{file.LastWriteTimeUtc:O},\"{file.Attributes}\"";
+                        await writer.WriteLineAsync(line);
+                    }
+                    else if (info is DirectoryInfo subDir)
+                    {
+                        await EnumerateDirectoryAsync(subDir.FullName, writer);
+                    }
                 }
             }
             catch (UnauthorizedAccessException)
