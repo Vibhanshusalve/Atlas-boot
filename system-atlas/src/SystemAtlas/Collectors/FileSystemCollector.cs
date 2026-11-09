@@ -19,26 +19,32 @@ namespace SystemAtlas.Collectors
         {
             var csvPath = Path.Combine(_scanDirectory, "File-Inventory.csv");
 
-            // Using a StreamWriter with transactional/incremental writes.
-            using var writer = new StreamWriter(csvPath, append: false);
-            await writer.WriteLineAsync("Path,Size,CreationTime,LastWriteTime,Attributes");
+            // Optimization: Wrap the synchronous I/O in Task.Run to prevent blocking the calling thread.
+            await Task.Run(() =>
+            {
+                // Optimization: Using a larger buffer size (64KB) for StreamWriter to batch file I/O writes.
+                // Using synchronous WriteLine instead of WriteLineAsync to avoid Task allocation and state machine
+                // overhead for every single file enumerated, which is significant for high-frequency fine-grained operations.
+                using var writer = new StreamWriter(csvPath, append: false, encoding: System.Text.Encoding.UTF8, bufferSize: 65536);
+                writer.WriteLine("Path,Size,CreationTime,LastWriteTime,Attributes");
 
-            try
-            {
-                // Start enumerating from Users and select important roots to avoid scanning C:\Windows entirely unless needed.
-                var usersDir = Path.Combine(_targetDrive, "Users");
-                if (Directory.Exists(usersDir))
+                try
                 {
-                    await EnumerateDirectoryAsync(usersDir, writer);
+                    // Start enumerating from Users and select important roots to avoid scanning C:\Windows entirely unless needed.
+                    var usersDir = Path.Combine(_targetDrive, "Users");
+                    if (Directory.Exists(usersDir))
+                    {
+                        EnumerateDirectory(usersDir, writer);
+                    }
                 }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[ERROR] FileSystemCollector failed: {ex.Message}");
-            }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[ERROR] FileSystemCollector failed: {ex.Message}");
+                }
+            });
         }
 
-        private async Task EnumerateDirectoryAsync(string dirPath, StreamWriter writer)
+        private void EnumerateDirectory(string dirPath, StreamWriter writer)
         {
             try
             {
@@ -58,12 +64,12 @@ namespace SystemAtlas.Collectors
                 {
                     // Do not collect file contents. Just metadata.
                     var line = $"\"{file.FullName}\",{file.Length},{file.CreationTimeUtc:O},{file.LastWriteTimeUtc:O},\"{file.Attributes}\"";
-                    await writer.WriteLineAsync(line);
+                    writer.WriteLine(line);
                 }
 
                 foreach (var subDir in dirInfo.EnumerateDirectories("*", new EnumerationOptions { IgnoreInaccessible = true }))
                 {
-                    await EnumerateDirectoryAsync(subDir.FullName, writer);
+                    EnumerateDirectory(subDir.FullName, writer);
                 }
             }
             catch (UnauthorizedAccessException)
