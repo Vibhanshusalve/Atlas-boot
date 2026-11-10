@@ -1,0 +1,15 @@
+# Build directories
+[Bb]in/
+[Oo]bj/
+
+# Test results
+[Tt]est[Rr]esults/
+
+# Rider/Visual Studio
+.vs/
+.idea/
+*.user
+*.suo
+
+# Mac OS
+.DS_Store
